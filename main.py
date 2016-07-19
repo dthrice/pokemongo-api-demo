@@ -49,9 +49,9 @@ COORDS_ALTITUDE = 0
 FLOAT_LAT = 0
 FLOAT_LONG = 0
 deflat, deflng = 0, 0
-default_step = 0.001
+default_step = 0.003
 
-NUM_STEPS = 5
+NUM_STEPS = 3
 DATA_FILE = 'data.json'
 DATA = []
 
@@ -74,8 +74,6 @@ def prune():
             DATA.pop(i)
 
 def write_data_to_file():
-    prune()
-
     with open(DATA_FILE, 'w') as f:
         json.dump(DATA, f, indent=2)
 
@@ -90,7 +88,7 @@ def add_pokemon(pokeId, name, lat, lng, timestamp, timeleft):
     });
 
 def set_location(location_name):
-    geolocator = GoogleV3()
+    geolocator = GoogleV3(api_key="AIzaSyAsUiXrgTe7QP4N9MLPB8GjKm82_e7kQgY")
     loc = geolocator.geocode(location_name)
 
     print('[!] Your given location: {}'.format(loc.address.encode('utf-8')))
@@ -345,6 +343,27 @@ def scan(api_endpoint, access_token, response, origin, pokemons):
 
         print('[+] Scan: %0.1f %%' % (((steps + (pos * .25) - .25) / steplimit**2) * 100))
 
+locations = [
+    '50.13152, 8.70366', # Guentherspark
+    # '50.143603, 8.712858', # Propst-Goebels-Weg
+    '50.126107, 8.720412', # Eissporthalle
+    '50.121950, 8.721650', # Ostpark
+    '50.116971, 8.704196', # Zoo (Unterer Atzemer)
+    '50.118479, 8.685005', # Eschenheimer Anlage (Petersstrasse)
+    '50.106668, 8.681630', # Eiserner teg (Schaumeinkai)
+    '50.101434, 8.680790', # Schweizer Platz
+    '50.106400, 8.662210', # Hauptbahnhof
+    '50.113068, 8.653516', # Friedrich-Ebert-Anlage
+    '50.125592, 8.658159', # Palmengarten
+    '50.126617, 8.669480', # Goethe-Uni (Nina-Rubinstein-Weg)
+    # '50.125991, 8.678385', # Adolp-Von-Holzhausen-Park
+    '50.101503, 8.691779', # Lokalbahnhof
+    '50.103213, 8.643977', # Gallus
+    '50.115153, 8.670364', # Alte Oper
+    '50.111387, 8.619112', # Rebstockbad / Park
+    '50.124932, 8.617227' # Brentanobad
+]
+
 def main():
     write_data_to_file()
     pokemons = json.load(open('pokemon.json'))
@@ -361,8 +380,6 @@ def main():
         DEBUG = True
         print('[!] DEBUG mode on')
 
-    set_location(args.location)
-
     access_token = login_ptc(args.username, args.password)
     if access_token is None:
         print('[-] Error logging in: possible wrong username/password')
@@ -370,12 +387,14 @@ def main():
     print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
     api_endpoint = get_api_endpoint(access_token)
+
     if api_endpoint is None:
         print('[-] RPC server offline')
         return
     print('[+] Received API endpoint: {}'.format(api_endpoint))
 
     response = get_profile(access_token, api_endpoint, None)
+
     if response is not None:
         print('[+] Login successful')
 
@@ -394,10 +413,12 @@ def main():
     else:
         print('[-] Ooops...')
 
-    origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
-
     while True:
-        scan(api_endpoint, access_token, response, origin, pokemons)
+        prune()
+        for location in locations:
+            set_location(location)
+            origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
+            scan(api_endpoint, access_token, response, origin, pokemons)
 
 
 if __name__ == '__main__':
